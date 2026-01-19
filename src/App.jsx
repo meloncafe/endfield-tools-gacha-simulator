@@ -163,6 +163,7 @@ export default function App() {
   };
 
   const currentRate = (get6StarRate(pityCounter) * 100).toFixed(2);
+  const isNextPullGuaranteed = pityCounter >= 79;
 
   const ResultTag = ({ item }) => {
     const E = item.element ? ELEMENTS[item.element] : null;
@@ -451,8 +452,14 @@ export default function App() {
                 {pityCounter}<span className="text-lg font-normal text-muted-foreground">/80</span>
               </div>
               <div className="text-sm text-muted-foreground">
-                {t.probability} <span className="font-medium text-foreground">{currentRate}%</span>
-                {pityCounter >= 65 && <span className="text-orange-500 ml-1">{t.soft}</span>}
+                {isNextPullGuaranteed ? (
+                  <span className="font-semibold text-amber-600 animate-pulse">{t.nextPullGuaranteed}</span>
+                ) : (
+                  <>
+                    {t.probability} <span className="font-medium text-foreground">{currentRate}%</span>
+                    {pityCounter >= 65 && <span className="text-orange-500 ml-1">{t.soft}</span>}
+                  </>
+                )}
               </div>
             </div>
             <Progress value={(pityCounter / 80) * 100} className="h-2" />
@@ -476,7 +483,11 @@ export default function App() {
                 {featuredCounter}<span className="text-lg font-normal text-muted-foreground">/120</span>
               </div>
               <div className="text-sm text-muted-foreground">
-                {120 - featuredCounter}{t.pullsRemaining}
+                {featuredCounter >= 119 ? (
+                  <span className="font-semibold text-amber-600 animate-pulse">{t.nextPullFeatured}</span>
+                ) : (
+                  <>{120 - featuredCounter}{t.pullsRemaining}</>
+                )}
               </div>
             </div>
             <Progress value={(featuredCounter / 120) * 100} className="h-2" />
