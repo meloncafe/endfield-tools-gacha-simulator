@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "endfield-gacha-simulator",
+  "name": "endfield-tools-gacha-simulator",
   "compatibility_date": "2026-01-19",
   "assets": {
     "directory": "./dist"
