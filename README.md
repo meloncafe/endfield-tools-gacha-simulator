@@ -4,7 +4,7 @@ Arknights: Endfield 헤드헌팅 시뮬레이터 - v1.0 정식 출시 기준
 
 ## 🎮 데모
 
-[Live Demo](https://meloncafe.github.io/endfield-tools-gacha-simulator/) _(배포 예정)_
+[Live Demo](https://endfield.tools)
 
 ## ✨ 기능
 
