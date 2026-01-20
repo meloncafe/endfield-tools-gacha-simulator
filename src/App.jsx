@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Flame, Snowflake, Leaf, Zap, Star, RotateCcw, ChevronDown, ChevronUp, Check, X, ArrowRight, Info, Github, Globe } from 'lucide-react';
+import { Flame, Snowflake, Leaf, Zap, Star, RotateCcw, ChevronDown, ChevronUp, Check, X, ArrowRight, ArrowDown, Info, Github, Globe, Gift, Sparkles } from 'lucide-react';
 import { LANGUAGES, detectBrowserLanguage, getTranslation, getCharacterName } from '@/lib/i18n';
 
 const GACHA_CONFIG = {
@@ -16,6 +16,7 @@ const GACHA_CONFIG = {
   softPityIncrease: 0.05,
   hardPity: 80,
   featuredGuarantee: 120,
+  dupeGuarantee: 240,
   fiftyFifty: { featured: 0.50, nextLimited: 0.1428, standard: 0.3572 }
 };
 
@@ -58,10 +59,11 @@ export default function App() {
   const [selectedBanner, setSelectedBanner] = useState('laevatain');
   const [pityCounter, setPityCounter] = useState(0);
   const [featuredCounter, setFeaturedCounter] = useState(0);
+  const [dupeCounter, setDupeCounter] = useState(0);
   const [totalPulls, setTotalPulls] = useState(0);
   const [results, setResults] = useState([]);
   const [history, setHistory] = useState([]);
-  const [stats, setStats] = useState({ total6: 0, totalFeatured: 0 });
+  const [stats, setStats] = useState({ total6: 0, totalFeatured: 0, totalDupeTokens: 0 });
   const [showInfo, setShowInfo] = useState(false);
   const [pendingBanner, setPendingBanner] = useState(null);
   const [showBannerDialog, setShowBannerDialog] = useState(false);
@@ -80,7 +82,7 @@ export default function App() {
 
   const handleBannerChange = (key) => {
     if (key === selectedBanner) return;
-    if (featuredCounter > 0) {
+    if (featuredCounter > 0 || dupeCounter > 0) {
       setPendingBanner(key);
       setShowBannerDialog(true);
     } else {
@@ -93,6 +95,7 @@ export default function App() {
     if (pendingBanner) {
       setSelectedBanner(pendingBanner);
       setFeaturedCounter(0);
+      setDupeCounter(0);
       setResults([]);
       setPendingBanner(null);
     }
@@ -108,6 +111,7 @@ export default function App() {
     const newResults = [];
     let newPity = pityCounter;
     let newFeatured = featuredCounter;
+    let newDupe = dupeCounter;
     let newStats = { ...stats };
     let newHistory = [...history];
 
@@ -120,33 +124,54 @@ export default function App() {
       if (is6Star) {
         const sixStarRoll = Math.random();
         if (newFeatured >= 119 || sixStarRoll < GACHA_CONFIG.fiftyFifty.featured) {
-          result = { key: banner.key, element: banner.element, type: 'featured', rarity: 6 };
+          // 픽업 획득
+          const gotDupeToken = newDupe >= 239;
+          result = { 
+            key: banner.key, 
+            element: banner.element, 
+            type: 'featured', 
+            rarity: 6,
+            dupeToken: gotDupeToken
+          };
           newStats.totalFeatured++;
           newFeatured = 0;
+          
+          // 240뽑 돌파 재화 체크
+          if (gotDupeToken) {
+            newStats.totalDupeTokens++;
+            newDupe = 0;
+          } else {
+            newDupe++;
+          }
         } else if (sixStarRoll < GACHA_CONFIG.fiftyFifty.featured + GACHA_CONFIG.fiftyFifty.nextLimited) {
+          // 다음 한정 픽뚫
           const nextKey = banner.nextLimited[Math.floor(Math.random() * banner.nextLimited.length)];
           result = { key: nextKey, element: BANNERS_DATA[nextKey].element, type: 'nextLimited', rarity: 6 };
           newFeatured++;
+          newDupe++;
         } else {
+          // 상시 픽뚫
           const stdKey = STANDARD_POOL_KEYS[Math.floor(Math.random() * STANDARD_POOL_KEYS.length)];
           result = { key: stdKey, element: STANDARD_POOL_ELEMENTS[stdKey], type: 'standard', rarity: 6 };
           newFeatured++;
+          newDupe++;
         }
         newPity = 0;
         newStats.total6++;
         newHistory.push(result);
       } else if (roll < rate6Star + 0.08) {
         result = { rarity: 5 };
-        newPity++; newFeatured++;
+        newPity++; newFeatured++; newDupe++;
       } else {
         result = { rarity: 4 };
-        newPity++; newFeatured++;
+        newPity++; newFeatured++; newDupe++;
       }
       newResults.push(result);
     }
 
     setPityCounter(newPity);
     setFeaturedCounter(newFeatured);
+    setDupeCounter(newDupe);
     setTotalPulls(prev => prev + count);
     setResults(newResults);
     setStats(newStats);
@@ -155,11 +180,12 @@ export default function App() {
 
   const reset = () => {
     setPityCounter(0); 
-    setFeaturedCounter(0); 
+    setFeaturedCounter(0);
+    setDupeCounter(0);
     setTotalPulls(0);
     setResults([]); 
     setHistory([]); 
-    setStats({ total6: 0, totalFeatured: 0 });
+    setStats({ total6: 0, totalFeatured: 0, totalDupeTokens: 0 });
   };
 
   const currentRate = (get6StarRate(pityCounter) * 100).toFixed(2);
@@ -182,6 +208,7 @@ export default function App() {
           {E && <E.icon className={`w-3 h-3 mr-1 ${E.color}`} />}
           {getCharacterName(lang, item.key)}
           {item.type === 'featured' && <Check className="w-3 h-3 ml-1" />}
+          {item.dupeToken && <Gift className="w-3 h-3 ml-1 text-pink-500" />}
         </Badge>
       );
     }
@@ -192,6 +219,66 @@ export default function App() {
       </Badge>
     );
   };
+
+  // 가챠 흐름 시각화 컴포넌트
+  const GachaFlowChart = () => (
+    <div className="space-y-3 text-sm">
+      {/* Step 1: 뽑기 */}
+      <div className="flex items-center gap-3 p-3 bg-slate-100 rounded-lg">
+        <div className="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold">1</div>
+        <div className="flex-1">
+          <div className="font-semibold">{t.flowStep1Title}</div>
+          <div className="text-muted-foreground text-xs">{t.flowStep1Desc}</div>
+        </div>
+      </div>
+      
+      <div className="flex justify-center"><ArrowDown className="w-4 h-4 text-muted-foreground" /></div>
+      
+      {/* Step 2: 6성 판정 */}
+      <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+        <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold">2</div>
+        <div className="flex-1">
+          <div className="font-semibold text-amber-800">{t.flowStep2Title}</div>
+          <div className="text-amber-700 text-xs">{t.flowStep2Desc}</div>
+        </div>
+      </div>
+      
+      <div className="flex justify-center"><ArrowDown className="w-4 h-4 text-muted-foreground" /></div>
+      
+      {/* Step 3: 50/50 분기 */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+          <div className="font-semibold text-emerald-800 text-center">50%</div>
+          <div className="text-emerald-700 text-xs text-center">{t.flowWin}</div>
+          <div className="mt-2 p-2 bg-emerald-100 rounded text-center">
+            <Check className="w-4 h-4 inline text-emerald-600" />
+            <div className="text-xs font-medium text-emerald-800">{t.flowFeaturedGet}</div>
+          </div>
+        </div>
+        <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+          <div className="font-semibold text-red-800 text-center">50%</div>
+          <div className="text-red-700 text-xs text-center">{t.flowLose}</div>
+          <div className="mt-2 p-2 bg-red-100 rounded text-center">
+            <X className="w-4 h-4 inline text-red-600" />
+            <div className="text-xs font-medium text-red-800">{t.flowOffBanner}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-center"><ArrowDown className="w-4 h-4 text-muted-foreground" /></div>
+      
+      {/* Step 4: 다음 뽑기 */}
+      <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+        <div className="flex items-center gap-2">
+          <X className="w-5 h-5 text-orange-600" />
+          <div>
+            <div className="font-semibold text-orange-800">{t.flowNoGuarantee}</div>
+            <div className="text-orange-700 text-xs">{t.flowNoGuaranteeDesc}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 p-4">
@@ -229,6 +316,14 @@ export default function App() {
           </div>
         </div>
 
+        {/* 핵심 주의사항 배너 - 항상 표시 */}
+        <Alert variant="destructive" className="border-2">
+          <X className="h-4 w-4" />
+          <AlertDescription className="font-medium">
+            {t.criticalWarning}
+          </AlertDescription>
+        </Alert>
+
         {/* 초기화 버튼 */}
         <Button 
           variant="destructive" 
@@ -252,6 +347,68 @@ export default function App() {
         {showInfo && (
           <div className="space-y-4">
             
+            {/* 가챠 흐름도 - 새로 추가 */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t.gachaFlow}</CardTitle>
+                <CardDescription>{t.gachaFlowDesc}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GachaFlowChart />
+              </CardContent>
+            </Card>
+
+            {/* 3단계 천장 시스템 요약 */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t.threeStepPity}</CardTitle>
+                <CardDescription>{t.threeStepPityDesc}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* 80뽑 */}
+                <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                  <div className="text-2xl font-bold text-amber-600">80</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{t.pity80Title}</span>
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                        <Check className="w-3 h-3 mr-1" />{t.carryOver}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{t.pity80Desc}</div>
+                  </div>
+                </div>
+                
+                {/* 120뽑 */}
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                  <div className="text-2xl font-bold text-emerald-600">120</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{t.pity120Title}</span>
+                      <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-xs">
+                        <X className="w-3 h-3 mr-1" />{t.noCarryOver}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{t.pity120Desc}</div>
+                  </div>
+                </div>
+                
+                {/* 240뽑 */}
+                <div className="flex items-center gap-3 p-3 bg-pink-50 rounded-lg border border-pink-200">
+                  <div className="text-2xl font-bold text-pink-600">240</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{t.pity240Title}</span>
+                      <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-xs">
+                        <X className="w-3 h-3 mr-1" />{t.noCarryOver}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{t.pity240Desc}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* 데이터 출처 */}
             <Card>
               <CardHeader>
@@ -276,7 +433,7 @@ export default function App() {
               </CardContent>
             </Card>
 
-            {/* 천장 시스템 */}
+            {/* 천장 시스템 상세 */}
             <Card>
               <CardHeader>
                 <CardTitle>{t.pitySystem}</CardTitle>
@@ -307,6 +464,19 @@ export default function App() {
                     <span className="text-xl font-bold">120{t.pulls}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">{t.featuredResetDesc}</p>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{t.dupeGuarantee}</span>
+                      <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
+                        <X className="w-3 h-3 mr-1" />{t.noCarryOver}
+                      </Badge>
+                    </div>
+                    <span className="text-xl font-bold">240{t.pulls}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{t.dupeResetDesc}</p>
                 </div>
               </CardContent>
             </Card>
@@ -351,6 +521,12 @@ export default function App() {
                     <span className="font-semibold">{t.no120CarryOver}</span> — {t.no120CarryOverDesc}
                   </AlertDescription>
                 </Alert>
+                <Alert variant="destructive">
+                  <X className="h-4 w-4" />
+                  <AlertDescription>
+                    <span className="font-semibold">{t.no240CarryOver}</span> — {t.no240CarryOverDesc}
+                  </AlertDescription>
+                </Alert>
                 <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800 [&>svg]:text-emerald-600">
                   <Check className="h-4 w-4" />
                   <AlertDescription>
@@ -376,6 +552,10 @@ export default function App() {
                   <div className="flex items-center gap-3 text-red-600">
                     <X className="w-5 h-5 flex-shrink-0" />
                     <span>{t.counter120Reset}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-red-600">
+                    <X className="w-5 h-5 flex-shrink-0" />
+                    <span>{t.counter240Reset}</span>
                   </div>
                   <div className="flex items-center gap-3 text-red-600">
                     <X className="w-5 h-5 flex-shrink-0" />
@@ -494,28 +674,69 @@ export default function App() {
           </CardContent>
         </Card>
 
+        {/* 카운터 - 240뽑 돌파 */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                {t.dupeCounter}
+                <Gift className="w-4 h-4 text-pink-500" />
+              </CardTitle>
+              <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
+                <X className="w-3 h-3 mr-1" />{t.noCarryOver}
+              </Badge>
+            </div>
+            <CardDescription>{t.dupeCounterDesc}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end justify-between mb-3">
+              <div className="text-3xl font-bold tabular-nums">
+                {dupeCounter}<span className="text-lg font-normal text-muted-foreground">/240</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {dupeCounter >= 239 ? (
+                  <span className="font-semibold text-pink-600 animate-pulse">{t.nextPullDupe}</span>
+                ) : (
+                  <>{240 - dupeCounter}{t.pullsRemaining}</>
+                )}
+              </div>
+            </div>
+            <Progress value={(dupeCounter / 240) * 100} className="h-2 [&>div]:bg-pink-500" />
+            {stats.totalDupeTokens > 0 && (
+              <div className="mt-2 text-sm text-pink-600 flex items-center gap-1">
+                <Gift className="w-4 h-4" />
+                {t.dupeTokensEarned}: {stats.totalDupeTokens}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* 통계 */}
         <Card>
           <CardHeader>
             <CardTitle>{t.stats}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-4 gap-4 text-center">
+            <div className="grid grid-cols-5 gap-2 text-center">
               <div>
-                <div className="text-2xl font-bold tabular-nums">{totalPulls}</div>
+                <div className="text-xl font-bold tabular-nums">{totalPulls}</div>
                 <div className="text-xs text-muted-foreground">{t.totalPulls}</div>
               </div>
               <div>
-                <div className="text-2xl font-bold tabular-nums">{(totalPulls * 500).toLocaleString()}</div>
+                <div className="text-xl font-bold tabular-nums">{(totalPulls * 500).toLocaleString()}</div>
                 <div className="text-xs text-muted-foreground">{t.oroberyl}</div>
               </div>
               <div>
-                <div className="text-2xl font-bold tabular-nums text-amber-500">{stats.total6}</div>
+                <div className="text-xl font-bold tabular-nums text-amber-500">{stats.total6}</div>
                 <div className="text-xs text-muted-foreground">{t.sixStar}</div>
               </div>
               <div>
-                <div className="text-2xl font-bold tabular-nums text-emerald-500">{stats.totalFeatured}</div>
+                <div className="text-xl font-bold tabular-nums text-emerald-500">{stats.totalFeatured}</div>
                 <div className="text-xs text-muted-foreground">{t.featured}</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold tabular-nums text-pink-500">{stats.totalDupeTokens}</div>
+                <div className="text-xs text-muted-foreground">{t.dupeTokens}</div>
               </div>
             </div>
           </CardContent>
@@ -594,7 +815,7 @@ export default function App() {
               <AlertDialogTitle>{t.bannerChangeDialog}</AlertDialogTitle>
               <AlertDialogDescription asChild>
                 <div className="space-y-4 pt-2">
-                  <p>{featuredCounter}{t.bannerChangeDialogDesc}</p>
+                  <p>{t.bannerChangeDialogDescPrefix}{featuredCounter}{t.bannerChangeDialogDesc}</p>
                   
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 p-2 bg-emerald-50 rounded-lg text-emerald-700">
@@ -604,6 +825,10 @@ export default function App() {
                     <div className="flex items-center gap-2 p-2 bg-red-50 rounded-lg text-red-600">
                       <X className="w-4 h-4 flex-shrink-0" />
                       <span className="text-sm">120{t.pulls} <span className="font-semibold">{featuredCounter}{t.resetSuffix}</span></span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-red-50 rounded-lg text-red-600">
+                      <X className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-sm">240{t.pulls} <span className="font-semibold">{dupeCounter}{t.resetSuffix}</span></span>
                     </div>
                   </div>
 
