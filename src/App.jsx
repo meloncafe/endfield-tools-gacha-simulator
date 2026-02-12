@@ -79,7 +79,7 @@ export default function App() {
   useEffect(() => {
     if (window.ezstandalone) {
       window.ezstandalone.cmd.push(function () {
-        window.ezstandalone.showAds(103);
+        window.ezstandalone.showAds(101, 103);
       });
     }
   }, []);
@@ -324,6 +324,9 @@ export default function App() {
             <p className="text-sm text-muted-foreground mt-1">{t.version}</p>
           </div>
         </div>
+
+        {/* Ezoic Ad Placeholder - Top (101) */}
+        <div id="ezoic-pub-ad-placeholder-101" />
 
         {/* 핵심 주의사항 배너 - 항상 표시 */}
         <Alert variant="destructive" className="border-2">
@@ -792,7 +795,7 @@ export default function App() {
           </Card>
         )}
 
-        {/* Ezoic Ad Placeholder */}
+        {/* Ezoic Ad Placeholder - Bottom (103) */}
         <div id="ezoic-pub-ad-placeholder-103" />
 
         {/* 푸터 */}
