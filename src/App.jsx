@@ -79,7 +79,7 @@ export default function App() {
   useEffect(() => {
     if (window.ezstandalone) {
       window.ezstandalone.cmd.push(function () {
-        window.ezstandalone.showAds(101);
+        window.ezstandalone.showAds(103);
       });
     }
   }, []);
@@ -792,8 +792,8 @@ export default function App() {
           </Card>
         )}
 
-        {/* Ezoic Ad */}
-        <div id="ezoic-pub-ad-placeholder-101" />
+        {/* Ezoic Ad Placeholder */}
+        <div id="ezoic-pub-ad-placeholder-103" />
 
         {/* 푸터 */}
         <Card className="bg-slate-100 border-0">
