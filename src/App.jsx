@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -74,6 +74,15 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('endfield-gacha-lang', lang);
   }, [lang]);
+
+  // Ezoic ad initialization
+  useEffect(() => {
+    if (window.ezstandalone) {
+      window.ezstandalone.cmd.push(function () {
+        window.ezstandalone.showAds(101);
+      });
+    }
+  }, []);
 
   const get6StarRate = (pulls) => {
     if (pulls < GACHA_CONFIG.softPityStart) return GACHA_CONFIG.baseRate6Star;
@@ -782,6 +791,9 @@ export default function App() {
             </CardContent>
           </Card>
         )}
+
+        {/* Ezoic Ad */}
+        <div id="ezoic-pub-ad-placeholder-101" />
 
         {/* 푸터 */}
         <Card className="bg-slate-100 border-0">
